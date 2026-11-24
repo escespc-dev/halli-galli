@@ -30,10 +30,8 @@ legend{padding:0 6px;font-weight:700;font-size:16px}
 .hint:empty{display:none}
 .act small{font-size:11px;color:var(--muted);font-weight:400}
 input,textarea{font-family:inherit;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
-#editor input[type=text],.sharein{border:1px solid var(--line);padding:9px 10px;font-size:16px;background:#fff;min-width:0}
+#editor input[type=text]{border:1px solid var(--line);padding:9px 10px;font-size:16px;background:#fff;min-width:0}
 #edName{width:220px}#edSymV{width:120px}
-.sharein{flex:1}
-.sharebox{width:100%;height:76px;border:1px solid var(--line);padding:8px;font-size:13px;background:#fff;word-break:break-all;resize:none;margin:4px 0}
 .mylist{display:flex;flex-direction:column;gap:6px;margin:8px 0 10px}
 .myrow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;padding:6px 10px}
 .myrow svg{width:40px;height:40px;flex:none}
@@ -143,13 +141,6 @@ input,textarea{font-family:inherit;-webkit-user-select:text;user-select:text;-we
     <div id="editor" class="editor" hidden></div>
   </fieldset>
 
-  <fieldset><legend>다른 선생님과 동작 세트 공유</legend>
-    <p class="hint">지금 고른 동작(직접 만든 동작 포함)과 횟수·시간 설정을 링크 하나로 보냅니다. 학생 이름과 인원은 들어가지 않습니다.</p>
-    <div class="row"><button id="mkShare" class="opt" type="button">공유 링크 만들기</button><button id="cpShare" class="opt" type="button" hidden>복사</button></div>
-    <textarea id="shareOut" class="sharebox" readonly hidden></textarea>
-    <div class="row"><input id="shareIn" class="sharein" type="text" placeholder="받은 공유 링크를 여기에 붙여 넣으세요"><button id="impBtn" class="opt" type="button">불러오기</button></div>
-    <p id="shareMsg" class="hint"></p>
-  </fieldset>
 
   <fieldset><legend>인원과 이름</legend>
     <div class="row" id="pcount"></div>
@@ -468,66 +459,6 @@ function renderEditor(){
 }
 $('#newAct').addEventListener('click',function(){openEditor(null);});
 
-/* ===== 동작 세트 공유 ===== */
-function b64e(str){return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
-function b64d(str){str=str.replace(/-/g,'+').replace(/_/g,'/');while(str.length%4){str+='=';}return decodeURIComponent(escape(atob(str)));}
-function makeShareCode(){
-  var used=cfg.custom.filter(function(c){return cfg.acts.indexOf(c.id)>=0;});
-  return b64e(JSON.stringify({v:2,acts:cfg.acts.slice(),custom:used,ok:cfg.ok,bad:cfg.bad,time:cfg.time}));
-}
-function parseShare(text){
-  var m=String(text||'').match(/set=([A-Za-z0-9_\-]+)/);
-  var code=m?m[1]:String(text||'').trim();
-  if(!/^[A-Za-z0-9_\-]{8,}$/.test(code)){return null;}
-  try{var d=JSON.parse(b64d(code));return (d&&Array.isArray(d.acts))?d:null;}catch(e){return null;}
-}
-function applyShare(d){
-  var cs=(Array.isArray(d.custom)?d.custom:[]).map(cleanAct).filter(Boolean),added=0;
-  cs.forEach(function(c){
-    var k=-1;cfg.custom.forEach(function(x,i){if(x.id===c.id){k=i;}});
-    if(k>=0){cfg.custom[k]=c;}else if(cfg.custom.length<MAXCUSTOM){cfg.custom.push(c);added++;}
-  });
-  var acts=d.acts.filter(function(id){return typeof id==='string'&&exists(id);}).slice(0,MAXSEL);
-  if(acts.length>=2){cfg.acts=acts;}
-  if([3,5,10].indexOf(d.ok)>=0){cfg.ok=d.ok;}
-  if([2,3,5].indexOf(d.bad)>=0){cfg.bad=d.bad;}
-  if([0,3,5,7,10].indexOf(d.time)>=0){cfg.time=d.time;}
-  fixActs();save();renderSetup();
-  return {added:added,n:cfg.acts.length};
-}
-function shareMsg(t,warn){var m=$('#shareMsg');m.className='hint'+(warn?' warn':'');m.textContent=t;}
-$('#mkShare').addEventListener('click',function(){
-  var code=makeShareCode(),out=$('#shareOut'),isFile=location.protocol==='file:';
-  out.value=isFile?('set='+code):(location.href.split('#')[0]+'#set='+code);
-  out.hidden=false;$('#cpShare').hidden=false;
-  shareMsg(isFile?'파일로 열어서 인터넷 주소가 없습니다. 위 글자를 통째로 보내면 받은 선생님이 [불러오기] 칸에 붙여 넣어 쓸 수 있습니다.':'이 링크를 메신저로 보내세요. 링크를 연 선생님 기기에 같은 동작 세트와 횟수·시간 설정이 들어갑니다. 학생 이름과 인원은 보내지 않습니다.');
-});
-$('#cpShare').addEventListener('click',function(){
-  var out=$('#shareOut'),txt=out.value;
-  function fallback(){out.focus();out.select();try{document.execCommand('copy');shareMsg('복사했습니다.');}catch(e){shareMsg('길게 눌러 직접 복사해 주세요.',true);}}
-  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(function(){shareMsg('복사했습니다. 메신저에 붙여 넣으세요.');},fallback);}
-  else{fallback();}
-});
-$('#impBtn').addEventListener('click',function(){
-  var d=parseShare($('#shareIn').value);
-  if(!d){shareMsg('공유 링크를 읽지 못했습니다. 링크 전체를 붙여 넣었는지 확인해 주세요.',true);return;}
-  var r=applyShare(d);$('#shareIn').value='';
-  shareMsg('불러왔습니다. 새 동작 '+r.added+'개를 추가했고, 사용할 동작은 '+r.n+'개입니다.');
-});
-function checkHash(){
-  if(location.hash.indexOf('set=')<0){return;}
-  var d=parseShare(location.hash);
-  try{history.replaceState(null,'',location.href.split('#')[0]);}catch(e){}
-  if(!d){shareMsg('공유 링크가 손상되어 불러오지 못했습니다.',true);return;}
-  var n=(Array.isArray(d.custom)?d.custom.length:0);
-  setTimeout(function(){
-    if(window.confirm('다른 선생님이 공유한 동작 세트입니다.\n동작 '+d.acts.length+'개(직접 만든 동작 '+n+'개 포함)를 불러올까요?')){
-      var r=applyShare(d);
-      shareMsg('공유받은 동작 세트를 불러왔습니다. 새 동작 '+r.added+'개를 추가했습니다.');
-      $('#actPick').scrollIntoView({block:'center'});
-    }
-  },300);
-}
 function show(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id===id);});}
 
 /* ===== 소리 ===== */
@@ -763,7 +694,6 @@ document.addEventListener('contextmenu',function(e){if(e.target.closest('input,t
 document.addEventListener('dblclick',function(e){e.preventDefault();});
 
 renderSetup();
-checkHash();
 })();
 </script>
 </body>
