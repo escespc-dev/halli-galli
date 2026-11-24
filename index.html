@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>신체활동 할리갈리</title>
+<style>
+:root{--bg:#f4efe4;--ink:#2b2b2b;--line:#cfc6b4;--card:#fffdf8;--muted:#6b6457}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button{font-family:inherit;color:var(--ink);cursor:pointer}
+.screen{position:fixed;inset:0;display:none}
+.screen.on{display:block}
+
+/* ---------- 설정 화면 ---------- */
+#setup{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.wrap{max-width:760px;margin:0 auto;padding:28px 20px 48px}
+h1{font-size:30px;font-weight:700;border-bottom:2px solid var(--ink);padding-bottom:10px}
+.lead{font-size:15px;color:var(--muted);margin:10px 0 22px;line-height:1.6}
+fieldset{border:1px solid var(--line);background:var(--card);padding:14px 18px 16px;margin-bottom:16px}
+legend{padding:0 6px;font-weight:700;font-size:16px}
+.acts{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 8px}
+.act{display:flex;flex-direction:column;align-items:center;gap:6px;width:128px;padding:10px 6px;border:1px solid var(--line);background:#fff;font-size:14px}
+.act svg{width:58px;height:58px}
+.act.sel{border:2px solid var(--ink);padding:9px 5px;font-weight:700}
+.act:not(.sel){opacity:.35}
+.hint{font-size:13px;color:var(--muted)}
+.hint.warn{color:#b8352b;font-weight:700}
+.preview{display:flex;gap:8px;margin-top:10px;align-items:flex-end}
+.preview svg{width:62px;height:87px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.lab{display:inline-block;width:150px;font-size:15px}
+.opt{border:1px solid var(--line);background:#fff;padding:10px 16px;font-size:16px}
+.opt.sel{border:2px solid var(--ink);padding:9px 15px;font-weight:700}
+.names{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin-top:10px}
+.names label{display:flex;align-items:center;gap:8px;font-size:14px}
+.names input{flex:1;min-width:0;border:1px solid var(--line);padding:9px 10px;font-size:16px;background:#fff;font-family:inherit;-webkit-user-select:text;user-select:text}
+.sw{display:inline-block;width:14px;height:14px;flex:none}
+.rules{padding-left:20px;font-size:14px;line-height:1.75}
+.start{display:block;width:100%;padding:18px;font-size:21px;font-weight:700;background:var(--ink);color:var(--bg);border:0;margin-top:6px}
+
+/* ---------- 게임 화면 ---------- */
+#game{touch-action:none;overflow:hidden}
+.panel{position:absolute;width:40vmin;height:28vmin;display:flex;gap:1.6vmin;align-items:center;padding:1.4vmin;border:1px solid var(--line);background:rgba(255,253,248,.55)}
+.seat-bottom{left:50%;bottom:.6vmin;transform:translateX(-50%)}
+.seat-top{left:50%;top:.6vmin;transform:translateX(-50%) rotate(180deg)}
+.seat-left{left:14.6vmin;top:50%;transform:translate(-50%,-50%) rotate(90deg)}
+.seat-right{left:calc(100% - 14.6vmin);top:50%;transform:translate(-50%,-50%) rotate(-90deg)}
+.panel.turn{border:.6vmin solid var(--pc);padding:.9vmin}
+.panel.rang{background:var(--pc)}
+.panel.out{opacity:.45}
+.slot{width:18vmin;height:25.2vmin;flex:none}
+.slot .empty{width:100%;height:100%;border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;color:#a39a88;font-size:2.2vmin}
+.cardsvg{width:100%;height:100%;display:block}
+.flipin{animation:flipin .18s ease-out}
+@keyframes flipin{from{transform:scale(.7) rotate(-6deg);opacity:.3}to{transform:none;opacity:1}}
+.side{flex:1;min-width:0;display:flex;flex-direction:column;gap:1vmin}
+.pname{font-size:2.8vmin;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-block;width:3.4vmin;height:3.4vmin;line-height:3.4vmin;text-align:center;background:var(--pc);color:#fff;font-size:2.2vmin;margin-right:.8vmin;border-radius:2px;vertical-align:middle}
+.cnt{font-size:2.3vmin}
+.cnt b{font-size:3.4vmin}
+.tm{font-size:2vmin;color:var(--muted);min-height:2.4vmin}
+.flip{height:9vmin;font-size:3vmin;font-weight:700;border:1.5px solid var(--line);background:#fff;color:#a39a88;touch-action:none}
+.panel.turn .flip{background:var(--pc);border-color:var(--pc);color:#fff}
+.panel.out .flip{visibility:hidden}
+#bellWrap{position:absolute;left:50%;top:50%;width:27vmin;height:27vmin;transform:translate(-50%,-50%)}
+#bell{width:100%;height:100%;display:block;touch-action:none}
+#bell .sec{fill-opacity:.22}
+#bell .sec.hit{fill-opacity:.9}
+#pauseBtn{position:absolute;right:1vmin;top:1vmin;width:6.5vmin;height:6.5vmin;border:1px solid var(--line);background:var(--card);font-size:2.4vmin;font-weight:700}
+
+/* ---------- 안내(오버레이) ---------- */
+#overlay{position:absolute;inset:0;display:none;background:rgba(244,239,228,.97);z-index:10}
+#overlay.on{display:block}
+.half{position:absolute;left:0;right:0;height:50%;display:flex;align-items:center;justify-content:center;padding:2vmin 4vmin}
+.half.top{top:0;transform:rotate(180deg)}
+.half.bottom{bottom:0;border-top:1px solid var(--line)}
+.ovbox{display:flex;align-items:center;gap:4vmin;max-width:100%}
+.ovbox .big{width:22vmin;height:22vmin;flex:none}
+.ovtext{display:flex;flex-direction:column;gap:1.2vmin;min-width:0}
+.ovtitle{font-size:4.6vmin;font-weight:700}
+#overlay.ok .ovtitle{color:#2e7d4f}
+#overlay.bad .ovtitle{color:#b8352b}
+.ovsub{font-size:2.3vmin;line-height:1.5;color:var(--muted)}
+.minis{display:flex;gap:1vmin}
+.minis svg{width:6.4vmin;height:9vmin}
+.ovtask{font-size:3vmin}
+.counter{font-size:7vmin;font-weight:700;line-height:1}
+.ovbtns{display:flex;gap:1.5vmin}
+.ovbtns button{padding:1.4vmin 3vmin;font-size:2.8vmin;font-weight:700;border:1.5px solid var(--ink);background:var(--ink);color:var(--bg)}
+.ovbtns button+button{background:#fff;color:var(--ink)}
+.ovbtns button:disabled{opacity:.25}
+.rank{list-style:none;font-size:3vmin;line-height:1.6}
+.rank li:first-child{font-weight:700}
+.rank b{margin-left:1vmin}
+</style>
+</head>
+<body>
+
+<div id="setup" class="screen on"><div class="wrap">
+  <h1>신체활동 할리갈리</h1>
+  <p class="lead">태블릿 한 대를 책상 가운데에 눕혀 두고 2~4명이 둘러앉아 하는 게임입니다. 같은 동작이 정확히 5개가 되면 가운데 종의 자기 쪽을 누르세요.</p>
+
+  <fieldset><legend>동작 카드</legend>
+    <div id="actPick" class="acts"></div>
+    <p id="actHint" class="hint"></p>
+    <div id="preview" class="preview"></div>
+  </fieldset>
+
+  <fieldset><legend>인원과 이름</legend>
+    <div class="row" id="pcount"></div>
+    <div class="names" id="names"></div>
+  </fieldset>
+
+  <fieldset><legend>운동 횟수와 시간</legend>
+    <div class="row"><span class="lab">종 성공: 모두 함께</span><span id="okReps" class="row"></span></div>
+    <div class="row"><span class="lab">종 잘못 침: 혼자</span><span id="badReps" class="row"></span></div>
+    <div class="row"><span class="lab">게임 시간</span><span id="timeSel" class="row"></span></div>
+  </fieldset>
+
+  <fieldset><legend>규칙</legend>
+    <ol class="rules">
+      <li>자기 차례에 [뒤집기]를 누르면 카드가 한 장 펼쳐집니다. 순서는 아래 → 왼쪽 → 위 → 오른쪽(시계 방향)입니다.</li>
+      <li>각자 맨 위에 펼쳐진 카드만 셉니다. 같은 동작이 <b>정확히 5개</b>가 되면 가운데 종에서 <b>자기 번호 쪽</b>을 누릅니다.</li>
+      <li>가장 먼저 누른 사람이 펼쳐진 카드를 모두 가져가고, 모두 함께 그 동작을 합니다.</li>
+      <li>잘못 누르면 다른 사람에게 카드를 1장씩 주고, 혼자 벌칙 동작을 합니다.</li>
+      <li>남은 카드가 없으면 탈락합니다. 한 명만 남거나 시간이 끝나면 카드가 가장 많은 사람이 이깁니다.</li>
+    </ol>
+  </fieldset>
+
+  <button id="startBtn" class="start" type="button">게임 시작</button>
+</div></div>
+
+<div id="game" class="screen">
+  <div id="board"></div>
+  <div id="bellWrap"><svg id="bell" viewBox="-100 -100 200 200"></svg></div>
+  <button id="pauseBtn" type="button">II</button>
+  <div id="overlay"><div class="half top"></div><div class="half bottom"></div></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ===== 동작 기호(40x40) ===== */
+var ACTS=[
+ {name:'개구리 점프',color:'#2e8b47',tempo:1500,
+  lines:'<path d="M20 20 L20 26 M20 26 L13 29 L14 33 M20 26 L27 29 L26 33 M20 21 L17.5 31 M20 21 L22.5 31"/><path d="M8 13 Q20 -1 32 13 M27.3 11.3 L32 13 L31.1 8.1" stroke-width="2.2"/>',
+  heads:'<circle cx="20" cy="16" r="3.6"/>'},
+ {name:'팔벌려높이뛰기',color:'#c8372d',tempo:1000,
+  lines:'<path d="M20 11 L20 23 M20 14 L9 5 M20 14 L31 5 M20 23 L11 34 M20 23 L29 34"/>',
+  heads:'<circle cx="20" cy="7.5" r="3.6"/>'},
+ {name:'팔굽혀펴기',color:'#2a62b8',tempo:1800,
+  lines:'<path d="M12 19 L33 26 M14 20 L14 29.5 M33 26 L35 29.5"/><path d="M4 31 L37 31" stroke-width="1.6"/><path d="M24 6 L24 15 M21.5 8.5 L24 6 L26.5 8.5 M21.5 12.5 L24 15 L26.5 12.5" stroke-width="2"/>',
+  heads:'<circle cx="8.5" cy="17" r="3.6"/>'},
+ {name:'옆으로 허리 굽히기',color:'#6e44b0',tempo:2000,
+  lines:'<path d="M20 26 Q20 19 24 14 M15.4 7.2 L32.6 20.8 M20 26 L15 35 M20 26 L25 35"/><path d="M8 25 Q3 16 9 8 M5.3 9.6 L9 8 L8.5 12 M8 21 L8 25 L4.6 23" stroke-width="2"/>',
+  heads:'<circle cx="27.4" cy="9.7" r="3.6"/>'},
+ {name:'목 돌리기',color:'#c07c00',tempo:2500,
+  lines:'<path d="M9 32 Q20 25 31 32 M20 22 L20 28"/><path d="M10.6 20.4 A10 10 0 1 1 29.4 20.4 M32.8 17.5 L29.4 20.4 L28.6 16" stroke-width="2.2"/>',
+  heads:'<circle cx="20" cy="17" r="5"/>'}
+];
+var PCOLORS=['#34495e','#8a5a3c','#3f6e62','#7a6a3f'];
+var SEATS={2:['bottom','top'],3:['bottom','left','top'],4:['bottom','left','top','right']};
+var SEATNAME={bottom:'아래쪽',left:'왼쪽',top:'위쪽',right:'오른쪽'};
+var DIR={bottom:90,left:180,top:270,right:0};
+var ROT={bottom:0,left:90,top:180,right:-90};
+var DIST=[[1,5],[2,3],[3,3],[4,2],[5,1]]; /* 기호 수, 장수 (동작당 14장) */
+var POS={1:[[50,70]],2:[[27,32],[73,108]],3:[[27,32],[50,70],[73,108]],
+         4:[[27,32],[73,32],[27,108],[73,108]],5:[[27,32],[73,32],[27,108],[73,108],[50,70]]};
+
+function $(s){return document.querySelector(s);}
+function esc(t){return String(t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+function symbolSVG(i){
+  var a=ACTS[i];
+  return '<circle cx="20" cy="20" r="19" fill="'+a.color+'" fill-opacity=".10" stroke="'+a.color+'" stroke-opacity=".35" stroke-width="1"/>'+
+    '<g fill="none" stroke="'+a.color+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'+a.lines+'</g>'+
+    '<g fill="'+a.color+'">'+a.heads+'</g>';
+}
+function cardSVG(c,cls){
+  var s='<svg class="'+(cls||'cardsvg')+'" viewBox="0 0 100 140"><rect x="1" y="1" width="98" height="138" rx="6" fill="#fffdf8" stroke="#bfb5a1" stroke-width="1.4"/>';
+  POS[c.n].forEach(function(p){s+='<g transform="translate('+(p[0]-20)+' '+(p[1]-20)+')">'+symbolSVG(c.a)+'</g>';});
+  return s+'</svg>';
+}
+
+/* ===== 설정 ===== */
+var cfg={n:4,names:['','','',''],acts:[0,1,2,3,4],ok:5,bad:3,time:5};
+try{var sv=JSON.parse(localStorage.getItem('pe-halli-v1')||'null');if(sv){for(var k in sv){cfg[k]=sv[k];}}}catch(e){}
+function save(){try{localStorage.setItem('pe-halli-v1',JSON.stringify(cfg));}catch(e){}}
+
+function makeOpts(box,vals,label,cur,onSel){
+  box.innerHTML='';
+  vals.forEach(function(v){
+    var b=document.createElement('button');b.type='button';
+    b.className='opt'+(v===cur?' sel':'');b.textContent=label(v);
+    b.onclick=function(){onSel(v);};box.appendChild(b);
+  });
+}
+function renderSetup(warn){
+  var ap=$('#actPick');ap.innerHTML='';
+  ACTS.forEach(function(a,i){
+    var b=document.createElement('button');b.type='button';
+    b.className='act'+(cfg.acts.indexOf(i)>=0?' sel':'');
+    b.innerHTML='<svg viewBox="0 0 40 40">'+symbolSVG(i)+'</svg><span>'+a.name+'</span>';
+    b.onclick=function(){
+      var k=cfg.acts.indexOf(i);
+      if(k>=0){ if(cfg.acts.length<=2){renderSetup(true);return;} cfg.acts.splice(k,1); }
+      else { cfg.acts.push(i); cfg.acts.sort(); }
+      renderSetup();
+    };
+    ap.appendChild(b);
+  });
+  var h=$('#actHint');
+  h.className='hint'+(warn?' warn':'');
+  h.textContent=warn?'동작은 2개 이상 골라야 합니다.':'사용할 동작을 누르세요(2개 이상). 동작 1개당 카드 14장, 지금 덱은 '+(cfg.acts.length*14)+'장입니다.';
+  var pv=$('#preview'),ex=cfg.acts[0];pv.innerHTML='';
+  [1,2,3,4,5].forEach(function(n){pv.insertAdjacentHTML('beforeend',cardSVG({a:ex,n:n},'pv'));});
+
+  makeOpts($('#pcount'),[2,3,4],function(v){return v+'명';},cfg.n,function(v){cfg.n=v;renderSetup();});
+  var nb=$('#names');nb.innerHTML='';
+  SEATS[cfg.n].forEach(function(seat,i){
+    var l=document.createElement('label');
+    l.innerHTML='<span class="sw" style="background:'+PCOLORS[i]+'"></span>'+(i+1)+'번('+SEATNAME[seat]+')';
+    var inp=document.createElement('input');inp.type='text';inp.maxLength=8;inp.placeholder=(i+1)+'번';
+    inp.value=cfg.names[i]||'';inp.oninput=function(){cfg.names[i]=inp.value;};
+    l.appendChild(inp);nb.appendChild(l);
+  });
+  makeOpts($('#okReps'),[3,5,10],function(v){return v+'회';},cfg.ok,function(v){cfg.ok=v;renderSetup();});
+  makeOpts($('#badReps'),[2,3,5],function(v){return v+'회';},cfg.bad,function(v){cfg.bad=v;renderSetup();});
+  makeOpts($('#timeSel'),[0,3,5,7,10],function(v){return v?v+'분':'제한 없음';},cfg.time,function(v){cfg.time=v;renderSetup();});
+}
+function show(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id===id);});}
+
+/* ===== 소리 ===== */
+var AC=null;
+function audioInit(){
+  if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;}}
+  if(AC&&AC.state==='suspended'){AC.resume();}
+}
+function tone(f,d,type,vol,delay){
+  if(!AC)return;
+  var t=AC.currentTime+(delay||0),o=AC.createOscillator(),g=AC.createGain();
+  o.type=type||'sine';o.frequency.value=f;
+  g.gain.setValueAtTime(vol||0.2,t);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+  o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+0.05);
+}
+function ding(){tone(1318,1.2,'sine',.28);tone(1975,.9,'sine',.12);tone(2637,.5,'sine',.06);}
+function buzz(){tone(150,.45,'sawtooth',.15);tone(110,.45,'square',.06);}
+function beep(last){tone(last?1046:784,.15,'triangle',.28);}
+
+/* ===== 게임 ===== */
+var S=null,OVH=[],ovT=null,ovI=null;
+var bellEl=$('#bell');
+
+function startGame(){
+  audioInit();save();
+  var seats=SEATS[cfg.n],deck=[];
+  cfg.acts.forEach(function(a){DIST.forEach(function(d){for(var k=0;k<d[1];k++){deck.push({a:a,n:d[0]});}});});
+  shuffle(deck);
+  var per=Math.floor(deck.length/cfg.n);
+  var P=seats.map(function(seat,i){
+    return {name:(cfg.names[i]||'').trim()||((i+1)+'번'),seat:seat,color:PCOLORS[i],
+            deck:deck.slice(i*per,(i+1)*per),pile:[],out:false,el:null};
+  });
+  S={P:P,turn:0,locked:false,paused:false,ended:false,timeLeft:cfg.time*60,timer:null};
+  buildBoard();render();
+  if(cfg.time){S.timer=setInterval(tick,1000);}
+  show('game');
+}
+function buildBoard(){
+  var board=$('#board');board.innerHTML='';
+  S.P.forEach(function(p,i){
+    var el=document.createElement('div');
+    el.className='panel seat-'+p.seat;el.style.setProperty('--pc',p.color);
+    el.innerHTML='<div class="slot"></div><div class="side"><div class="pname"><span class="badge">'+(i+1)+'</span>'+esc(p.name)+'</div>'+
+      '<div class="cnt"></div><div class="tm"></div><button class="flip" type="button">뒤집기</button></div>';
+    el.querySelector('.flip').addEventListener('pointerdown',function(e){e.preventDefault();flip(i);});
+    p.el=el;board.appendChild(el);
+  });
+}
+function buildBell(){
+  var list=S.P.map(function(p,i){return {i:i,ang:DIR[p.seat]};}).sort(function(a,b){return a.ang-b.ang;});
+  var n=list.length,r=96,s='';
+  list.forEach(function(o,k){
+    var prev=list[(k-1+n)%n].ang,next=list[(k+1)%n].ang;
+    if(prev>=o.ang){prev-=360;} if(next<=o.ang){next+=360;}
+    var a0=(prev+o.ang)/2,a1=(o.ang+next)/2,rad=Math.PI/180;
+    var x0=(r*Math.cos(a0*rad)).toFixed(2),y0=(r*Math.sin(a0*rad)).toFixed(2);
+    var x1=(r*Math.cos(a1*rad)).toFixed(2),y1=(r*Math.sin(a1*rad)).toFixed(2);
+    var p=S.P[o.i],col=p.out?'#9a9488':p.color;
+    s+='<path class="sec" data-i="'+o.i+'" d="M0 0 L'+x0+' '+y0+' A'+r+' '+r+' 0 '+((a1-a0)>180?1:0)+' 1 '+x1+' '+y1+' Z" fill="'+col+'" stroke="#f4efe4" stroke-width="3"/>';
+    var lx=(72*Math.cos(o.ang*rad)).toFixed(2),ly=(72*Math.sin(o.ang*rad)).toFixed(2);
+    s+='<text transform="translate('+lx+' '+ly+') rotate('+ROT[p.seat]+')" text-anchor="middle" dominant-baseline="central" font-size="22" font-weight="700" fill="'+col+'">'+(o.i+1)+'</text>';
+  });
+  s+='<circle r="46" fill="#c9a227" stroke="#8f7316" stroke-width="3"/><circle r="14" fill="#a8861c"/>';
+  bellEl.innerHTML=s;
+}
+function fmt(t){var m=Math.floor(t/60),x=t%60;return m+':'+(x<10?'0':'')+x;}
+function updateTime(){
+  S.P.forEach(function(p){p.el.querySelector('.tm').textContent=cfg.time?('남은 시간 '+fmt(Math.max(0,S.timeLeft))):'';});
+}
+function render(){
+  S.P.forEach(function(p,i){
+    var el=p.el,isTurn=(i===S.turn&&!p.out);
+    el.classList.toggle('turn',isTurn);el.classList.toggle('out',p.out);
+    el.querySelector('.cnt').innerHTML=p.out?'<b>탈락</b>':'남은 카드 <b>'+p.deck.length+'</b>장';
+    el.querySelector('.flip').textContent=isTurn?'뒤집기':'기다리기';
+    var slot=el.querySelector('.slot'),top=p.pile[p.pile.length-1];
+    var key=top?(p.pile.length+':'+top.a+':'+top.n):'e';
+    if(slot.dataset.key!==key){
+      slot.dataset.key=key;
+      slot.innerHTML=top?cardSVG(top):'<div class="empty">카드 자리</div>';
+      if(top&&slot.firstChild){slot.firstChild.classList.add('flipin');}
+    }
+  });
+  updateTime();buildBell();
+}
+function tick(){
+  if(!S||S.locked||S.paused||S.ended)return;
+  S.timeLeft--;updateTime();
+  if(S.timeLeft<=0){endGame('시간이 다 됐어요.');}
+}
+function flip(i){
+  if(!S||S.locked||S.paused||S.ended||i!==S.turn)return;
+  var p=S.P[i];if(p.out||!p.deck.length)return;
+  p.pile.push(p.deck.shift());
+  nextTurn(i);render();
+}
+function nextTurn(from){
+  var N=S.P.length;
+  for(var k=1;k<=N;k++){
+    var j=(from+k)%N,p=S.P[j];
+    if(p.out)continue;
+    if(!p.deck.length){p.out=true;continue;}
+    S.turn=j;checkEnd();return;
+  }
+  endGame('카드를 낼 수 있는 사람이 없어요.');
+}
+function checkEnd(){
+  if(!S||S.ended)return;
+  var alive=S.P.filter(function(p){return !p.out;});
+  if(alive.length<=1){endGame('한 명만 남았어요.');}
+}
+
+/* 종: 터치한 위치의 방향으로 누가 눌렀는지 판정 */
+bellEl.addEventListener('pointerdown',function(e){
+  e.preventDefault();
+  if(!S||S.locked||S.paused||S.ended)return;
+  var r=bellEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
+  if(Math.sqrt(dx*dx+dy*dy)>r.width/2)return;
+  var ang=Math.atan2(dy,dx)*180/Math.PI;if(ang<0){ang+=360;}
+  var best=-1,bd=999;
+  S.P.forEach(function(p,k){var d=Math.abs(ang-DIR[p.seat]);if(d>180){d=360-d;}if(d<bd){bd=d;best=k;}});
+  if(best<0||S.P[best].out)return;
+  ring(best);
+});
+function ring(i){
+  S.locked=true;ding();
+  var tops=S.P.map(function(p){return p.pile[p.pile.length-1];}).filter(Boolean);
+  var cnt={};tops.forEach(function(c){cnt[c.a]=(cnt[c.a]||0)+c.n;});
+  var hit=-1;Object.keys(cnt).forEach(function(a){if(cnt[a]===5&&hit<0){hit=+a;}});
+  if(hit<0){setTimeout(buzz,250);}
+  var sec=bellEl.querySelector('.sec[data-i="'+i+'"]');if(sec){sec.classList.add('hit');}
+  S.P[i].el.classList.add('rang');
+  var summary=tops.length?Object.keys(cnt).map(function(a){return ACTS[a].name+' '+cnt[a]+'개';}).join(' · '):'펼쳐진 카드가 없어요';
+  var mini=tops.map(function(c){return cardSVG(c,'mini');}).join('');
+  setTimeout(function(){
+    S.P[i].el.classList.remove('rang');
+    if(hit>=0){success(i,hit,summary,mini);}else{fail(i,summary,mini);}
+  },700);
+}
+function success(i,a,summary,mini){
+  var p=S.P[i],got=[];
+  S.P.forEach(function(q){got=got.concat(q.pile);q.pile=[];});
+  p.deck=p.deck.concat(shuffle(got));
+  render();
+  showOverlay({kind:'ok',title:esc(p.name)+' 정답!',sub:summary+'<br>펼쳐진 카드 '+got.length+'장을 가져갑니다.',mini:mini,
+    act:a,reps:cfg.ok,who:'모두 함께',
+    done:function(){S.locked=false;S.turn=i;checkEnd();render();}});
+}
+function fail(i,summary,mini){
+  var p=S.P[i],seen=[];
+  S.P.forEach(function(q){var c=q.pile[q.pile.length-1];if(c&&seen.indexOf(c.a)<0){seen.push(c.a);}});
+  var pool=seen.length?seen:cfg.acts,a=pool[Math.floor(Math.random()*pool.length)],given=0;
+  S.P.forEach(function(q,k){if(k!==i&&!q.out&&p.deck.length){q.deck.push(p.deck.pop());given++;}});
+  render();
+  showOverlay({kind:'bad',title:esc(p.name)+' 땡!',sub:summary+'<br>정확히 5개인 동작이 없어요. 카드 '+given+'장을 나눠 줍니다.',mini:mini,
+    act:a,reps:cfg.bad,who:esc(p.name)+' 혼자',
+    done:function(){
+      S.locked=false;
+      if(!p.deck.length){p.out=true;}
+      if(S.P[S.turn].out){nextTurn(S.turn);}
+      checkEnd();render();
+    }});
+}
+function endGame(reason){
+  if(!S||S.ended)return;
+  S.ended=true;S.locked=true;clearInterval(S.timer);
+  var rank=S.P.map(function(p,i){return {p:p,i:i,c:p.deck.length+p.pile.length};})
+    .sort(function(x,y){return (x.p.out-y.p.out)||(y.c-x.c);});
+  var list='<ol class="rank">'+rank.map(function(r,k){
+    return '<li>'+(k+1)+'등 <span class="badge" style="background:'+r.p.color+'">'+(r.i+1)+'</span>'+esc(r.p.name)+'<b>'+r.c+'장</b></li>';
+  }).join('')+'</ol>';
+  setTimeout(function(){
+    showOverlay({kind:'end',title:'게임 끝',sub:reason,list:list,buttons:[
+      {label:'다시 하기',fn:function(){hideOverlay();startGame();}},
+      {label:'설정 화면',fn:function(){hideOverlay();S=null;show('setup');renderSetup();}}
+    ]});
+  },400);
+}
+
+/* ===== 안내 화면 (위·아래 양쪽으로 표시) ===== */
+var ov=$('#overlay');
+function clearOv(){if(ovT){clearTimeout(ovT);ovT=null;}if(ovI){clearInterval(ovI);ovI=null;}}
+function hideOverlay(){clearOv();ov.className='';OVH=[];}
+function setCounter(t){ov.querySelectorAll('.counter').forEach(function(e){e.textContent=t;});}
+function showOverlay(o){
+  clearOv();
+  var counting=(o.act!==undefined&&o.reps>0);
+  var btns=o.buttons||[{label:'계속하기',wait:true,fn:function(){hideOverlay();if(o.done){o.done();}}}];
+  OVH=btns.map(function(b){return b.fn;});
+  var h='<div class="ovbox">'+(o.act!==undefined?'<svg class="big" viewBox="0 0 40 40">'+symbolSVG(o.act)+'</svg>':'')+
+    '<div class="ovtext"><div class="ovtitle">'+o.title+'</div>'+
+    (o.sub?'<div class="ovsub">'+o.sub+'</div>':'')+
+    (o.mini?'<div class="minis">'+o.mini+'</div>':'')+
+    (counting?'<div class="ovtask">'+o.who+' <b>'+ACTS[o.act].name+' '+o.reps+'회</b></div><div class="counter">준비</div>':'')+
+    (o.list||'')+
+    '<div class="ovbtns">'+btns.map(function(b,k){return '<button type="button" data-k="'+k+'"'+(counting&&b.wait?' disabled':'')+'>'+b.label+'</button>';}).join('')+'</div>'+
+    '</div></div>';
+  ov.querySelector('.half.top').innerHTML=h;
+  ov.querySelector('.half.bottom').innerHTML=h;
+  ov.className='on '+(o.kind||'');
+  if(counting){
+    var c=0,tempo=ACTS[o.act].tempo;
+    ovT=setTimeout(function(){
+      ovI=setInterval(function(){
+        c++;beep(c===o.reps);setCounter(c+' / '+o.reps);
+        if(c>=o.reps){
+          clearInterval(ovI);ovI=null;
+          ovT=setTimeout(function(){setCounter('완료!');ov.querySelectorAll('button[disabled]').forEach(function(b){b.disabled=false;});},500);
+        }
+      },tempo);
+    },1200);
+  }
+}
+ov.addEventListener('click',function(e){
+  var b=e.target.closest('button[data-k]');
+  if(!b||b.disabled)return;
+  var fn=OVH[+b.dataset.k];OVH=[];
+  if(fn){fn();}
+});
+
+$('#pauseBtn').addEventListener('click',function(){
+  if(!S||S.locked||S.ended)return;
+  S.paused=true;
+  showOverlay({kind:'pause',title:'잠깐 멈춤',sub:'게임 시간도 함께 멈춥니다.',buttons:[
+    {label:'계속하기',fn:function(){hideOverlay();S.paused=false;}},
+    {label:'처음 화면으로',fn:function(){hideOverlay();clearInterval(S.timer);S=null;show('setup');renderSetup();}}
+  ]});
+});
+$('#startBtn').addEventListener('click',startGame);
+document.addEventListener('gesturestart',function(e){e.preventDefault();});
+document.addEventListener('contextmenu',function(e){e.preventDefault();});
+document.addEventListener('dblclick',function(e){e.preventDefault();});
+
+renderSetup();
+})();
+</script>
+</body>
+</html>
