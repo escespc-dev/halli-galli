@@ -66,7 +66,7 @@ input,textarea{font-family:inherit;-webkit-user-select:text;user-select:text;-we
 
 /* ---------- 게임 화면 ---------- */
 #game{touch-action:none;overflow:hidden}
-.panel{position:absolute;width:40vmin;height:28vmin;display:flex;gap:1.6vmin;align-items:center;padding:1.4vmin;border:1px solid var(--line);background:rgba(255,253,248,.55)}
+.panel{position:absolute;width:58vmin;height:28vmin;display:flex;gap:1.6vmin;align-items:center;padding:1.4vmin;border:1px solid var(--line);background:rgba(255,253,248,.55)}
 .seat-bottom{left:50%;bottom:.6vmin;transform:translateX(-50%)}
 .seat-top{left:50%;top:.6vmin;transform:translateX(-50%) rotate(180deg)}
 .seat-left{left:14.6vmin;top:50%;transform:translate(-50%,-50%) rotate(90deg)}
@@ -89,9 +89,19 @@ input,textarea{font-family:inherit;-webkit-user-select:text;user-select:text;-we
 .panel.turn .flip{background:var(--pc);border-color:var(--pc);color:#fff}
 .panel.out .flip{visibility:hidden}
 #bellWrap{position:absolute;left:50%;top:50%;width:27vmin;height:27vmin;transform:translate(-50%,-50%)}
-#bell{width:100%;height:100%;display:block;touch-action:none}
+#bell{width:100%;height:100%;display:block;pointer-events:none}
 #bell .sec{fill-opacity:.22}
 #bell .sec.hit{fill-opacity:.9}
+.ringbtn{width:15vmin;height:25.2vmin;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.8vmin;border:1vmin solid var(--pc);background:#c9a227;color:#fff;border-radius:8px;touch-action:none;font-weight:700;padding:0}
+.ringbtn svg{width:8vmin;height:8vmin;pointer-events:none}
+.ringbtn .rb-t{font-size:3.4vmin;line-height:1;pointer-events:none}
+.ringbtn .rb-n{font-size:1.9vmin;max-width:12vmin;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.ringbtn:active{background:#a8861c}
+.panel.wait .ringbtn{outline:.6vmin dashed var(--pc);outline-offset:.5vmin}
+.panel.ready .ringbtn{background:var(--pc)}
+.panel.out .ringbtn{visibility:hidden}
+.panel.wait .tm{color:#b8352b;font-weight:700}
+.panel.ready .tm{color:#2e7d4f;font-weight:700}
 #pauseBtn{position:absolute;right:1vmin;top:1vmin;width:6.5vmin;height:6.5vmin;border:1px solid var(--line);background:var(--card);font-size:2.4vmin;font-weight:700}
 
 /* ---------- 안내(오버레이) ---------- */
@@ -124,7 +134,7 @@ input,textarea{font-family:inherit;-webkit-user-select:text;user-select:text;-we
 
 <div id="setup" class="screen on"><div class="wrap">
   <h1>신체활동 할리갈리</h1>
-  <p class="lead">태블릿 한 대를 책상 가운데에 눕혀 두고 2~4명이 둘러앉아 하는 게임입니다. 같은 동작이 정확히 5개가 되면 가운데 종의 자기 쪽을 누르세요.</p>
+  <p class="lead">태블릿 한 대를 책상 가운데에 눕혀 두고 2~4명이 둘러앉아 하는 게임입니다. 같은 동작이 정확히 5개가 되면 <b>자기 앞에 있는 종 버튼</b>을 누르세요.</p>
 
   <fieldset><legend>동작 카드</legend>
     <div id="actPick" class="acts"></div>
@@ -155,8 +165,9 @@ input,textarea{font-family:inherit;-webkit-user-select:text;user-select:text;-we
 
   <fieldset><legend>규칙</legend>
     <ol class="rules">
+      <li>시작하기 전에 모두 자기 앞의 종 버튼을 한 번씩 눌러 자기 자리를 확인합니다. 모두 누르면 게임이 시작됩니다.</li>
       <li>자기 차례에 [뒤집기]를 누르면 카드가 한 장 펼쳐집니다. 순서는 아래 → 왼쪽 → 위 → 오른쪽(시계 방향)입니다.</li>
-      <li>각자 맨 위에 펼쳐진 카드만 셉니다. 같은 동작이 <b>정확히 5개</b>가 되면 가운데 종에서 <b>자기 번호 쪽</b>을 누릅니다.</li>
+      <li>각자 맨 위에 펼쳐진 카드만 셉니다. 같은 동작이 <b>정확히 5개</b>가 되면 <b>자기 앞에 있는 종 버튼</b>을 누릅니다. 가운데 종은 누가 눌렀는지 보여 주기만 합니다.</li>
       <li>가장 먼저 누른 사람이 펼쳐진 카드를 모두 가져가고, 모두 함께 그 동작을 합니다.</li>
       <li>잘못 누르면 다른 사람에게 카드를 1장씩 주고, 혼자 벌칙 동작을 합니다.</li>
       <li>남은 카드가 없으면 탈락합니다. 한 명만 남거나 시간이 끝나면 카드가 가장 많은 사람이 이깁니다.</li>
@@ -492,10 +503,33 @@ function startGame(){
     return {name:(cfg.names[i]||'').trim()||((i+1)+'번'),seat:seat,color:PCOLORS[i],
             deck:deck.slice(i*per,(i+1)*per),pile:[],out:false,el:null};
   });
-  S={P:P,turn:0,locked:false,paused:false,ended:false,timeLeft:cfg.time*60,timer:null};
+  S={P:P,turn:0,locked:false,paused:false,ended:false,timeLeft:cfg.time*60,timer:null,phase:'ready',ready:{}};
   buildBoard();render();
-  if(cfg.time){S.timer=setInterval(tick,1000);}
   show('game');
+}
+/* 시작 전 확인: 모두 자기 종 버튼을 한 번씩 눌러야 시작 */
+function readyCount(){return Object.keys(S.ready).length;}
+function markReady(i){
+  if(!S||S.phase!=='ready'||S.locked||S.paused||S.ready[i])return;
+  S.ready[i]=true;tone(880,.18,'triangle',.25);render();
+  if(readyCount()<S.P.length)return;
+  S.locked=true;
+  setTimeout(function(){
+    var first=S.P[S.turn];
+    showOverlay({kind:'ok',title:'모두 준비 완료!',sub:'각자 앞에 있는 종 버튼만 누르세요.<br>'+esc(first.name)+'부터 카드를 뒤집습니다.',
+      list:'<div class="counter">3</div>',buttons:[]});
+    var c=3;
+    ovI=setInterval(function(){
+      c--;beep(c===0);
+      if(c>0){setCounter(c);return;}
+      hideOverlay();beginPlay();
+    },1000);
+  },500);
+}
+function beginPlay(){
+  S.phase='play';S.locked=false;
+  if(cfg.time){S.timer=setInterval(tick,1000);}
+  render();
 }
 function buildBoard(){
   var board=$('#board');board.innerHTML='';
@@ -503,8 +537,10 @@ function buildBoard(){
     var el=document.createElement('div');
     el.className='panel seat-'+p.seat;el.style.setProperty('--pc',p.color);
     el.innerHTML='<div class="slot"></div><div class="side"><div class="pname"><span class="badge">'+(i+1)+'</span>'+esc(p.name)+'</div>'+
-      '<div class="cnt"></div><div class="tm"></div><button class="flip" type="button">뒤집기</button></div>';
+      '<div class="cnt"></div><div class="tm"></div><button class="flip" type="button">뒤집기</button></div>'+
+      '<button class="ringbtn" type="button"><svg viewBox="0 0 40 40"><path d="M20 5c-1.6 0-2.6 1-2.6 2.4C11.8 8.6 9 13 9 19v7l-3 4h28l-3-4v-7c0-6-2.8-10.4-8.4-11.6C22.6 6 21.6 5 20 5z" fill="#fff"/><circle cx="20" cy="33.5" r="3" fill="#fff"/></svg><span class="rb-t">종</span><span class="rb-n">'+esc(p.name)+'</span></button>';
     el.querySelector('.flip').addEventListener('pointerdown',function(e){e.preventDefault();flip(i);});
+    el.querySelector('.ringbtn').addEventListener('pointerdown',function(e){e.preventDefault();pressBell(i);});
     p.el=el;board.appendChild(el);
   });
 }
@@ -517,24 +553,30 @@ function buildBell(){
     var a0=(prev+o.ang)/2,a1=(o.ang+next)/2,rad=Math.PI/180;
     var x0=(r*Math.cos(a0*rad)).toFixed(2),y0=(r*Math.sin(a0*rad)).toFixed(2);
     var x1=(r*Math.cos(a1*rad)).toFixed(2),y1=(r*Math.sin(a1*rad)).toFixed(2);
-    var p=S.P[o.i],col=p.out?'#9a9488':p.color;
-    s+='<path class="sec" data-i="'+o.i+'" d="M0 0 L'+x0+' '+y0+' A'+r+' '+r+' 0 '+((a1-a0)>180?1:0)+' 1 '+x1+' '+y1+' Z" fill="'+col+'" stroke="#f4efe4" stroke-width="3"/>';
-    var lx=(72*Math.cos(o.ang*rad)).toFixed(2),ly=(72*Math.sin(o.ang*rad)).toFixed(2);
-    s+='<text transform="translate('+lx+' '+ly+') rotate('+ROT[p.seat]+')" text-anchor="middle" dominant-baseline="central" font-size="22" font-weight="700" fill="'+col+'">'+(o.i+1)+'</text>';
+    var p=S.P[o.i],col=p.out?'#9a9488':p.color,on=(S.phase==='ready'&&S.ready[o.i]);
+    s+='<path class="sec'+(on?' hit':'')+'" data-i="'+o.i+'" d=""M0 0 L'+x0+' '+y0+' A'+r+' '+r+' 0 '+((a1-a0)>180?1:0)+' 1 '+x1+' '+y1+' Z" fill="'+col+'" stroke="#f4efe4" stroke-width="3"/>';
   });
-  s+='<circle r="46" fill="#c9a227" stroke="#8f7316" stroke-width="3"/><circle r="14" fill="#a8861c"/>';
+  s+='<circle r="46" fill="#c9a227" stroke="#8f7316" stroke-width="3"/>';
+  if(S.phase==='ready'){s+='<text text-anchor="middle" dominant-baseline="central" font-size="26" font-weight="700" fill="#fff">'+readyCount()+'/'+S.P.length+'</text>';}
+  else{s+='<circle r="14" fill="#a8861c"/>';}
   bellEl.innerHTML=s;
 }
 function fmt(t){var m=Math.floor(t/60),x=t%60;return m+':'+(x<10?'0':'')+x;}
 function updateTime(){
+  if(S.phase==='ready'){
+    S.P.forEach(function(p,i){p.el.querySelector('.tm').textContent=S.ready[i]?'준비 완료':'내 종 버튼을 누르세요';});
+    return;
+  }
   S.P.forEach(function(p){p.el.querySelector('.tm').textContent=cfg.time?('남은 시간 '+fmt(Math.max(0,S.timeLeft))):'';});
 }
 function render(){
   S.P.forEach(function(p,i){
-    var el=p.el,isTurn=(i===S.turn&&!p.out);
+    var el=p.el,isReady=(S.phase==='ready'),isTurn=(!isReady&&i===S.turn&&!p.out);
     el.classList.toggle('turn',isTurn);el.classList.toggle('out',p.out);
+    el.classList.toggle('wait',isReady&&!S.ready[i]);el.classList.toggle('ready',isReady&&!!S.ready[i]);
+    el.querySelector('.rb-t').textContent=isReady?(S.ready[i]?'확인':'내 종'):'종';
     el.querySelector('.cnt').innerHTML=p.out?'<b>탈락</b>':'남은 카드 <b>'+p.deck.length+'</b>장';
-    el.querySelector('.flip').textContent=isTurn?'뒤집기':'기다리기';
+    el.querySelector('.flip').textContent=isReady?'준비 중':(isTurn?'뒤집기':'기다리기');
     var slot=el.querySelector('.slot'),top=p.pile[p.pile.length-1];
     var key=top?(p.pile.length+':'+top.a+':'+top.n):'e';
     if(slot.dataset.key!==key){
@@ -546,12 +588,12 @@ function render(){
   updateTime();buildBell();
 }
 function tick(){
-  if(!S||S.locked||S.paused||S.ended)return;
+  if(!S||S.phase!=='play'||S.locked||S.paused||S.ended)return;
   S.timeLeft--;updateTime();
   if(S.timeLeft<=0){endGame('시간이 다 됐어요.');}
 }
 function flip(i){
-  if(!S||S.locked||S.paused||S.ended||i!==S.turn)return;
+  if(!S||S.phase!=='play'||S.locked||S.paused||S.ended||i!==S.turn)return;
   var p=S.P[i];if(p.out||!p.deck.length)return;
   p.pile.push(p.deck.shift());
   nextTurn(i);render();
@@ -572,18 +614,13 @@ function checkEnd(){
   if(alive.length<=1){endGame('한 명만 남았어요.');}
 }
 
-/* 종: 터치한 위치의 방향으로 누가 눌렀는지 판정 */
-bellEl.addEventListener('pointerdown',function(e){
-  e.preventDefault();
-  if(!S||S.locked||S.paused||S.ended)return;
-  var r=bellEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
-  if(Math.sqrt(dx*dx+dy*dy)>r.width/2)return;
-  var ang=Math.atan2(dy,dx)*180/Math.PI;if(ang<0){ang+=360;}
-  var best=-1,bd=999;
-  S.P.forEach(function(p,k){var d=Math.abs(ang-DIR[p.seat]);if(d>180){d=360-d;}if(d<bd){bd=d;best=k;}});
-  if(best<0||S.P[best].out)return;
-  ring(best);
-});
+/* 종: 각자 앞에 있는 자기 버튼으로만 누름 */
+function pressBell(i){
+  if(!S||S.ended)return;
+  if(S.phase==='ready'){markReady(i);return;}
+  if(S.locked||S.paused||S.P[i].out)return;
+  ring(i);
+}
 function ring(i){
   S.locked=true;ding();
   var tops=S.P.map(function(p){return p.pile[p.pile.length-1];}).filter(Boolean);
